@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AIXBT ASCII Tweet Visualizer</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0ff;
+            font-family: "Courier New", monospace;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .frame {
+            border: 2px solid #0ff;
+            padding: 15px;
+            width: 600px;
+            background: rgba(0, 255, 255, 0.05);
+            box-shadow: 0 0 15px #0ff;
+        }
+        .ascii-logo {
+            text-align: center;
+            color: #0ff;
+            white-space: pre;
+            font-size: 14px;
+            line-height: 16px;
+            margin-bottom: 10px;
+        }
+        .tweet-text {
+            color: #0ff;
+            margin-bottom: 10px;
+        }
+        .meta {
+            font-size: 12px;
+            color: #0ff;
+            display: flex;
+            justify-content: space-between;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { text-shadow: 0 0 5px #0ff; }
+            50% { text-shadow: 0 0 15px #0ff; }
+            100% { text-shadow: 0 0 5px #0ff; }
+        }
+    </style>
+</head>
+<body>
+    <div class="frame pulse">
+        <div class="ascii-logo">
+            *
+           ***
+          *****
+           ***
+            *
+        </div>
+        <div class="tweet-text">
+            "StarkNet achieves a new milestone with the latest alpha release. A significant step forward for the ecosystem!"
+        </div>
+        <div class="meta">
+            <div>#StarkNet #ZK</div>
+            <div>Apr 23, 2024</div>
+        </div>
+    </div>
+</body>
+</html>
