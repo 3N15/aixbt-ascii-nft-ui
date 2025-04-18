@@ -13,15 +13,16 @@
     }
     .controls { margin-bottom:16px; }
     .controls button {
-      margin-right:8px; margin-bottom:8px;
-      padding:8px 16px; background:#00ffff; color:#0a0a0a;
-      border:none; border-radius:4px; cursor:pointer;
+      margin-right:8px; padding:8px 16px;
+      background:#00ffff; color:#0a0a0a; border:none; border-radius:4px;
+      cursor:pointer; font-family:'Space Mono',monospace;
     }
     .controls button:hover { background:#33ffff; }
     .card {
       width:360px; height:560px; padding:20px;
       background:linear-gradient(145deg,#111,#000);
-      border-radius:16px; box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
+      border-radius:16px;
+      box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
       position:relative; overflow:hidden;
     }
     .ascii-img {
@@ -30,8 +31,9 @@
     }
     .ascii {
       position:absolute; top:20px; left:24px;
-      width:312px; white-space:pre; font-size:14px; line-height:1.4;
-      letter-spacing:0; z-index:2; color:#00ffff; cursor:text;
+      width:312px; white-space:pre;
+      font-size:14px; line-height:1.4; letter-spacing:0;
+      z-index:2; color:#00ffff; cursor:text;
     }
     #uploadInput { display:none; }
   </style>
@@ -77,54 +79,51 @@
 +------------------------------------+</pre>
   </div>
 
-  <!-- Load html2canvas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-  <script defer>
-    document.addEventListener('DOMContentLoaded', () => {
+  <!-- Load html2canvas AFTER body -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    window.onload = () => {
       const asciiEl = document.getElementById('ascii');
       const uploadInput = document.getElementById('uploadInput');
       const cardImage = document.getElementById('cardImage');
 
       function getLines() {
-        return asciiEl.textContent.split('\n');
+        return asciiEl.textContent.split('\\n');
       }
       function updateLines(lines) {
-        asciiEl.textContent = lines.join('\n');
+        asciiEl.textContent = lines.join('\\n');
       }
       function centerLine(text, idx, lines) {
-        const width = lines[idx].length - 2;
-        const pad = width - text.length;
-        const left = Math.floor(pad/2), right = pad - left;
-        lines[idx] = '|' + ' '.repeat(left) + text + ' '.repeat(right) + '|';
+        const w = lines[idx].length - 2;
+        const pad = w - text.length;
+        const l = Math.floor(pad/2), r = pad - l;
+        lines[idx] = '|' + ' '.repeat(l) + text + ' '.repeat(r) + '|';
       }
 
-      document.getElementById('editTitle').addEventListener('click', () => {
-        console.log('Edit Title clicked');
-        const t = prompt('Enter new title:');
+      // Title
+      document.getElementById('editTitle').onclick = () => {
+        const t = prompt('New title:');
         if (!t) return;
         const lines = getLines();
         centerLine(t, 1, lines);
         updateLines(lines);
-      });
+      };
 
-      document.getElementById('editImage').addEventListener('click', () => {
-        console.log('Upload Image clicked');
-        uploadInput.click();
-      });
-      uploadInput.addEventListener('change', e => {
-        console.log('File selected');
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => cardImage.src = reader.result;
-        reader.readAsDataURL(file);
-      });
+      // Image upload
+      document.getElementById('editImage').onclick = () => uploadInput.click();
+      uploadInput.onchange = e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = () => cardImage.src = r.result;
+        r.readAsDataURL(f);
+      };
 
-      document.getElementById('editTweet').addEventListener('click', async () => {
-        console.log('Edit Tweet clicked');
+      // Tweet fetch
+      document.getElementById('editTweet').onclick = async () => {
         const url = prompt('Enter tweet URL:');
         if (!url) return;
-        const m = url.match(/status\/(\d+)/);
+        const m = url.match(/status\\/(\\d+)/);
         if (!m) { alert('Invalid URL'); return; }
         const id = m[1];
         try {
@@ -134,22 +133,27 @@
           const lines = getLines();
           centerLine(json.data.text.slice(0,37), 12, lines);
           const pm = json.data.public_metrics;
-          centerLine(`C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}`, 18, lines);
+          centerLine(
+            `C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}`,
+            18,
+            lines
+          );
           updateLines(lines);
         } catch (err) {
           alert('Error: ' + err.message);
         }
-      });
+      };
 
-      document.getElementById('downloadBtn').addEventListener('click', () => {
-        console.log('Download clicked');
+      // Download
+      document.getElementById('downloadBtn').onclick = () => {
         html2canvas(document.getElementById('card')).then(canvas => {
           const a = document.createElement('a');
           a.download = 'aixbt_ascii_card.png';
           a.href = canvas.toDataURL('image/png');
           a.click();
         });
-      });
-    });
+      };
+    };
   </script>
 </body>
+</html>
