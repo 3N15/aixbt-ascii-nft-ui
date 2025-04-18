@@ -1,31 +1,33 @@
-// /api/tweet.js
-import fetch from 'node-fetch';
+document.getElementById('editTweet').addEventListener('click', async () => {
+  const tweetUrl = prompt('Enter tweet URL:');
+  if (!tweetUrl) return;
 
-export default async function handler(req, res) {
-  const { id } = req.query;
-  if (!id) {
-    res.status(400).json({ error: 'Missing tweet id' });
+  // 1) Extract only the digits after '/status/'
+  const match = tweetUrl.match(/status\/(\d+)/);
+  if (!match) {
+    alert('Invalid tweet URL – expected a link containing "/status/<tweet_id>".');
     return;
   }
-
-  const BEARER = process.env.TWITTER_BEARER_TOKEN;
-  if (!BEARER) {
-    res.status(500).json({ error: 'Bearer token not configured' });
-    return;
-  }
+  const tweetId = match[1];
 
   try {
-    const resp = await fetch(
-      `https://api.twitter.com/2/tweets/${id}?tweet.fields=public_metrics,text`,
-      {
-        headers: {
-          Authorization: `Bearer ${BEARER}`
-        }
-      }
+    // 2) Fetch via your own API route
+    const resp = await fetch(`/api/tweet?id=${tweetId}`);
+    const json = await resp.json();
+    if (!resp.ok || !json.data) {
+      throw new Error(json.error || JSON.stringify(json));
+    }
+
+    // 3) Update ASCII lines as before
+    const lines = asciiEl.textContent.split('\n');
+    centerLine(json.data.text.slice(0,37), 12, lines);
+    const m = json.data.public_metrics;
+    centerLine(
+      `C:${m.reply_count} R:${m.retweet_count} L:${m.like_count} B:${m.quote_count}`,
+      18, lines
     );
-    const data = await resp.json();
-    res.status(resp.status).json(data);
+    asciiEl.textContent = lines.join('\n');
   } catch (err) {
-    res.status(500).json({ error: err.toString() });
+    alert('Fetch error: ' + err.message);
   }
-}
+});
