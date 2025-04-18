@@ -1,45 +1,84 @@
-// api/tweet.js
-export default async function handler(req, res) {
-  const { id } = req.query;
-  if (!id || !/^\d+$/.test(id)) {
-    return res.status(400).json({ error: 'Invalid or missing tweet id' });
+document.getElementById('editTweet').onclick = async function () {
+  const raw = prompt('Paste tweet URL:');
+  if (!raw) return;
+
+  // ⏱️ Debounce: prevent back-to-back API hits
+  if (window.__lastTweetFetch && Date.now() - window.__lastTweetFetch < 5000) {
+    alert('Slow down, try again in a few seconds.');
+    return;
   }
+  window.__lastTweetFetch = Date.now();
 
-  const BEARER = process.env.TWITTER_BEARER_TOKEN;
-  if (!BEARER) {
-    return res.status(500).json({ error: 'Bearer token not configured' });
-  }
+  // 🧠 Cache: reuse previous lookups in browser
+  window.__tweetCache = window.__tweetCache || {};
+  let tweetId = null;
 
-  // Cache at Vercel edge for 60s, stale‑while‑revalidate for 5m
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
-
+  // 🔍 Extract tweet ID
   try {
-    const apiUrl = new URL(`https://api.twitter.com/2/tweets/${id}`);
-    apiUrl.searchParams.set('tweet.fields', 'public_metrics,text');
+    const u = new URL(raw);
+    const seg = u.pathname.split('/').filter(Boolean);
+    const idx = seg.indexOf('status');
+    if (idx >= 0 && seg[idx + 1]) tweetId = seg[idx + 1];
+  } catch (e) {}
 
-    const resp = await fetch(apiUrl.toString(), {
-      headers: { Authorization: `Bearer ${BEARER}` }
-    });
-
-    // 429 rate‑limit handling
-    if (resp.status === 429) {
-      const reset = resp.headers.get('x-rate-limit-reset');
-      let msg = 'Rate limit exceeded; try again later.';
-      if (reset) {
-        msg += ` (resets at ${new Date(+reset * 1000).toLocaleTimeString()})`;
-      }
-      return res.status(429).json({ error: msg });
-    }
-
-    const data = await resp.json();
-
-    // v2 errors array
-    if (data.errors && data.errors.length) {
-      return res.status(resp.status).json({ error: data.errors[0].detail });
-    }
-
-    return res.status(200).json(data);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  if (!tweetId) {
+    const nums = raw.match(/\d+/g) || [];
+    tweetId = nums.find(n => n.length > 10) || nums[0];
   }
+
+  if (!tweetId) return alert('Could not extract tweet ID.');
+
+  // 🤖 Check cache first
+  if (window.__tweetCache[tweetId]) {
+    renderTweet(window.__tweetCache[tweetId]);
+    return;
+  }
+
+  // 📡 Fetch from API
+  try {
+    const res = await fetch(`/api/tweet?id=${tweetId}`);
+    const data = await res.json();
+
+    if (res.status === 429) {
+      alert(data.error || 'Rate limited. Try again later.');
+      return;
+    }
+
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    // 🧠 Save in cache
+    window.__tweetCache[tweetId] = data;
+    renderTweet(data);
+  } catch (err) {
+    alert('Failed to fetch tweet: ' + err.message);
+  }
+};
+
+// 🖼️ Renders data to ASCII card
+function renderTweet(data) {
+  const lines = document.getElementById('ascii').textContent.split('\n');
+  const txt = data.data.text || '';
+
+  const pm = data.data.public_metrics || {
+    reply_count: 0,
+    retweet_count: 0,
+    like_count: 0,
+    quote_count: 0
+  };
+
+  function centerLine(text, idx) {
+    const width = lines[idx].length - 2;
+    const pad = width - text.length;
+    const left = Math.floor(pad / 2);
+    const right = pad - left;
+    lines[idx] = '|' + ' '.repeat(left) + text + ' '.repeat(right) + '|';
+  }
+
+  centerLine(txt.slice(0, 37), 12);
+  centerLine(
+    `C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}`,
+    18
+  );
+
+  document.getElementById('ascii').textContent = lines.join('\n');
 }
