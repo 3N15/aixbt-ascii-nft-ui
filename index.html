@@ -5,85 +5,75 @@
   <title>AIXBT ASCII NFT Card – Interactive</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
-    /* … your existing CSS unchanged … */
+    /* your existing CSS */
   </style>
 </head>
 <body>
-
   <div class="controls">
-    <!-- buttons unchanged … -->
+    <button id="editTitle">Edit Title</button>
+    <button id="editImage">Upload Image</button>
+    <button id="editTweet">Edit Tweet</button>
+    <button id="downloadBtn">Download PNG</button>
+    <input type="file" id="uploadInput" accept="image/*" />
   </div>
 
   <div class="card" id="card">
-    <!-- ASCII card markup unchanged … -->
+    <!-- your ASCII card markup unchanged -->
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     window.onload = () => {
-      const asciiEl = document.getElementById('ascii');
-      const uploadInput = document.getElementById('uploadInput');
-      const cardImage   = document.getElementById('cardImage');
+      const asciiEl    = document.getElementById('ascii');
+      const uploadIn   = document.getElementById('uploadInput');
+      const cardImg    = document.getElementById('cardImage');
 
-      function getLines() { return asciiEl.textContent.split('\n'); }
-      function updateLines(lines) { asciiEl.textContent = lines.join('\n'); }
-      function centerLine(text, idx, lines) {
-        const w = lines[idx].length - 2;
-        const pad = w - text.length;
-        const l = Math.floor(pad/2), r = pad - l;
-        lines[idx] = '|' + ' '.repeat(l) + text + ' '.repeat(r) + '|';
+      function getLines()   { return asciiEl.textContent.split('\\n'); }
+      function updateLines(l) { asciiEl.textContent = l.join('\\n'); }
+      function centerLine(t,i,l){
+        const w   = l[i].length - 2;
+        const pad = w - t.length;
+        const lf  = Math.floor(pad/2), rt = pad - lf;
+        l[i] = '|' + ' '.repeat(lf) + t + ' '.repeat(rt) + '|';
       }
 
-      // … other handlers unchanged …
+      // … your editTitle and uploadImage handlers …
 
-      // EDIT TWEET (updated)
+      // REWRITTEN “Edit Tweet”
       document.getElementById('editTweet').onclick = async () => {
-        const urlString = prompt('Enter full tweet URL:');
-        if (!urlString) return;
+        const raw = prompt('Paste full tweet URL:');
+        if (!raw) return;
 
-        let tweetId;
-        try {
-          // 1) Parse URL object – this will drop any query string
-          const url = new URL(urlString);
-          const segments = url.pathname.split('/').filter(Boolean);
-          // 2) Find the "status" segment and take the next one
-          const i = segments.indexOf('status');
-          if (i === -1 || !segments[i+1]) throw new Error();
-          tweetId = segments[i+1];
-        } catch {
-          alert('Invalid URL – must contain /status/<tweet_id>');
+        // grab every numeric chunk, take the last one
+        const allNums = raw.match(/\\d+/g);
+        if (!allNums) {
+          alert('No numeric ID found in URL.');
           return;
         }
-
-        // 3) sanity check: must be all digits
-        if (!/^\d+$/.test(tweetId)) {
-          alert('Invalid tweet ID parsed.');
-          return;
-        }
+        const tweetId = allNums[allNums.length - 1];
 
         try {
-          // 4) Fetch from your proxy
-          const resp = await fetch(`/api/tweet?id=${encodeURIComponent(tweetId)}`);
-          const json = await resp.json();
-          if (!resp.ok || json.error) {
-            throw new Error(json.error || `HTTP ${resp.status}`);
+          const res = await fetch(`/api/tweet?id=${encodeURIComponent(tweetId)}`);
+          const js  = await res.json();
+          if (!res.ok || js.error) {
+            throw new Error(js.error || `HTTP ${res.status}`);
           }
 
-          // 5) Update ASCII
           const lines = getLines();
-          centerLine(json.data.text.slice(0,37), 12, lines);
-          const pm = json.data.public_metrics;
+          centerLine(js.data.text.slice(0,37), 12, lines);
+          const pm = js.data.public_metrics;
           centerLine(
             `C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}`,
-            18, lines
+            18,
+            lines
           );
           updateLines(lines);
-        } catch (err) {
-          alert('Error fetching tweet: ' + err.message);
+        } catch (er) {
+          alert('Error fetching tweet: ' + er.message);
         }
       };
 
-      // DOWNLOAD PNG handler unchanged …
+      // … your downloadBtn handler …
     };
   </script>
 </body>
