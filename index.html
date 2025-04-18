@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AIXBT ASCII NFT Card – Dynamic</title>
+<title>AIXBT ASCII NFT Card – Uploadable Image</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -30,7 +30,7 @@
     box-shadow: 0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
     position: relative; overflow: hidden;
   }
-  /* Position image exactly under second ASCII block */
+  /* Enforce 312×190 image size */
   .ascii-img {
     position: absolute; top: 106px; left: 24px;
     width: 312px; height: 190px; object-fit: cover; z-index: 1;
@@ -41,14 +41,16 @@
     font-size: 14px; line-height: 1.4; z-index: 2;
     color: #00ffff; cursor: text;
   }
+  #uploadInput { display: none; }
 </style>
 </head>
 <body>
   <div class="controls">
     <button id="editTitle">Edit Title</button>
-    <button id="editImage">Edit Image</button>
+    <button id="editImage">Upload Image</button>
     <button id="editTweet">Edit Tweet</button>
     <button id="downloadBtn">Download PNG</button>
+    <input type="file" id="uploadInput" accept="image/*" />
   </div>
   <div class="card" id="card">
     <img id="cardImage" src="37FED526-B80D-4288-BBEE-9A5E646D3E2E.png" class="ascii-img" alt="" />
@@ -85,14 +87,12 @@
   <script>
     const asciiEl = document.getElementById('ascii');
     let lines = asciiEl.innerText.split('\n');
-
     function centerLine(text, lineIndex) {
       const width = lines[lineIndex].length - 2;
       const pad = width - text.length;
       const left = Math.floor(pad/2), right = pad - left;
       lines[lineIndex] = '|' + ' '.repeat(left) + text + ' '.repeat(right) + '|';
     }
-
     document.getElementById('editTitle').onclick = () => {
       const newTitle = prompt('Enter new title:');
       if (newTitle) {
@@ -100,18 +100,24 @@
         asciiEl.innerText = lines.join('\n');
       }
     };
-
     document.getElementById('editImage').onclick = () => {
-      const url = prompt('Enter image URL:');
-      if (url) document.getElementById('cardImage').src = url;
+      document.getElementById('uploadInput').click();
     };
-
+    document.getElementById('uploadInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById('cardImage').src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    };
     document.getElementById('editTweet').onclick = async () => {
       const tweetUrl = prompt('Enter tweet URL:');
       if (tweetUrl) {
         const tweetId = tweetUrl.split('/').pop();
         const resp = await fetch(`https://api.twitter.com/2/tweets/${tweetId}?tweet.fields=public_metrics,text`, {
-          headers: { 'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAO4e0gEAAAAApJyDDbxGy2DD%2Fd6CPS6xAQqCJh8%3D3tQnfQTvRhILqNw78hKSH4PzVFA6a0gsdvb0OGmQN0NFKxNJ6D' }
+          headers: { 'Authorization': 'AAAAAAAAAAAAAAAAAAAAAO4e0gEAAAAAEpB%2B2nSGgzQr9Pl7mc5K5oc7IsA%3DBfnjq5uw0auPT08tz1y2NjNnzk3jBsqroO8PbHL9C0r36gEAcX' }
         });
         const data = await resp.json();
         const txt = data.data.text;
@@ -122,7 +128,6 @@
         asciiEl.innerText = lines.join('\n');
       }
     };
-
     document.getElementById('downloadBtn').onclick = () => {
       html2canvas(document.getElementById('card')).then(canvas => {
         const link = document.createElement('a');
