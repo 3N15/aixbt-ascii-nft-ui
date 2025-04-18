@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,8 +45,7 @@
     <img id="cardImage" class="ascii-img"
          src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
          alt="content">
-    <pre id="ascii" class="ascii">
-+------------------------------------+
+    <pre id="ascii" class="ascii">+------------------------------------+
 |        INSIDER WALLET DUMP         |
 +------------------------------------+
 
@@ -71,8 +71,7 @@
 |                                    |
 +------------------------------------+
 | C:0    | R:0    | L:0     | B:0    |
-+------------------------------------+
-    </pre>
++------------------------------------+</pre>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -113,36 +112,30 @@
           const idx = seg.indexOf('status');
           if (idx >= 0 && seg[idx+1]) tweetId = seg[idx+1];
         } catch {}
-
         if (!tweetId) {
           const nums = raw.match(/\d+/g) || [];
-          tweetId = nums.find(n=>n.length>10) || nums[0];
+          tweetId = nums.find(n => n.length > 10) || nums[0];
         }
-
-        if (!tweetId) { alert('Cannot extract tweet ID.'); return; }
+        if (!tweetId) return alert('Cannot extract tweet ID.');
 
         try {
           const resp = await fetch(`/api/tweet?id=${tweetId}`);
-          const js   = await resp.json();
-
-          if (resp.status === 429) {
-            alert(js.error);
-            return;
-          }
-
-          if (!resp.ok) throw new Error(js.error||`HTTP ${resp.status}`);
+          const js = await resp.json();
+          if (resp.status === 429) return alert(js.error);
+          if (!resp.ok) throw new Error(js.error || `HTTP ${resp.status}`);
 
           const l = getLines();
-          centerLine(js.data.text.slice(0,37), 12, l);
-          const pm = js.data.public_metrics;
-          const safe = (v) => (typeof v === 'number' && v >= 0 ? v : 0);
+          const tweet = js.data.text?.slice(0, 37) || '[No tweet content]';
+          centerLine(tweet, 12, l);
+          const pm = js.data.public_metrics || {};
+          const count = (v) => (typeof v === 'number' && v >= 0 ? v : 0);
           centerLine(
-            `C:${safe(pm.reply_count)} R:${safe(pm.retweet_count)} L:${safe(pm.like_count)} B:${safe(pm.quote_count)}`,
+            `C:${count(pm.reply_count)} R:${count(pm.retweet_count)} L:${count(pm.like_count)} B:${count(pm.bookmark_count)}`,
             18, l
           );
           updateLines(l);
         } catch (er) {
-          alert('Error fetching tweet: '+er.message);
+          alert('Error fetching tweet: ' + er.message);
         }
       };
 
