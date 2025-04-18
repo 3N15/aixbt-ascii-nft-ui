@@ -4,12 +4,13 @@ export default async function handler(req, res) {
   if (!id || !/^\d+$/.test(id)) {
     return res.status(400).json({ error: 'Invalid or missing tweet id' });
   }
+
   const BEARER = process.env.TWITTER_BEARER_TOKEN;
   if (!BEARER) {
     return res.status(500).json({ error: 'Bearer token not configured' });
   }
 
-  // Edge‑cache for 60s
+  // Cache at Vercel edge for 60s, stale‑while‑revalidate for 5m
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
 
   try {
@@ -20,6 +21,7 @@ export default async function handler(req, res) {
       headers: { Authorization: `Bearer ${BEARER}` }
     });
 
+    // 429 rate‑limit handling
     if (resp.status === 429) {
       const reset = resp.headers.get('x-rate-limit-reset');
       let msg = 'Rate limit exceeded; try again later.';
@@ -30,6 +32,8 @@ export default async function handler(req, res) {
     }
 
     const data = await resp.json();
+
+    // v2 errors array
     if (data.errors && data.errors.length) {
       return res.status(resp.status).json({ error: data.errors[0].detail });
     }
