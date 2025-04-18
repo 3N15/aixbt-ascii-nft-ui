@@ -5,10 +5,7 @@
   <title>AIXBT ASCII NFT Card</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0; padding: 0; box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%;
       height: 100%;
@@ -25,11 +22,9 @@
       color: #00ffff;
       padding: 20px;
     }
-
     .controls {
       margin-bottom: 16px;
     }
-
     .controls button {
       margin: 0 6px 8px 0;
       padding: 8px 16px;
@@ -40,11 +35,9 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
     .controls button:hover {
       background: #33ffff;
     }
-
     .card {
       position: relative;
       width: 360px;
@@ -55,7 +48,6 @@
       box-shadow: 0 4px 8px rgba(0, 255, 255, 0.2), 0 8px 16px rgba(0, 255, 255, 0.1);
       overflow: hidden;
     }
-
     .ascii-img {
       position: absolute;
       top: 106px;
@@ -65,7 +57,6 @@
       object-fit: cover;
       z-index: 1;
     }
-
     .ascii {
       position: absolute;
       top: 17px;
@@ -82,10 +73,7 @@
       color: #00ffff;
       cursor: text;
     }
-
-    #uploadInput {
-      display: none;
-    }
+    #uploadInput { display: none; }
   </style>
 </head>
 <body>
@@ -205,7 +193,8 @@
           const pm = js.data.public_metrics;
           const lines = getLines();
 
-          for (let i = 21; i <= 25; i++) {
+          // Start tweet on line 20 (instead of 21)
+          for (let i = 20; i <= 24; i++) {
             lines[i] = '|                                    |';
           }
 
@@ -213,13 +202,13 @@
           for (let i = 0; i < Math.min(5, contentLines.length); i++) {
             const text = contentLines[i];
             const pad = 36 - text.length;
-            lines[21 + i] = `|${text}${' '.repeat(pad)}|`;
+            lines[20 + i] = `|${text}${' '.repeat(pad)}|`;
           }
 
           const metrics = `C:${pm.reply_count}  R:${pm.retweet_count}  L:${pm.like_count}  B:${pm.bookmark_count ?? 0}`;
           const pad = 36 - metrics.length;
           const lpad = Math.floor(pad / 2), rpad = pad - lpad;
-          lines[27] = '|' + ' '.repeat(lpad) + metrics + ' '.repeat(rpad) + '|';
+          lines[26] = '|' + ' '.repeat(lpad) + metrics + ' '.repeat(rpad) + '|';
 
           updateLines(lines);
         } catch (err) {
