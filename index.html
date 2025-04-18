@@ -79,7 +79,6 @@
 +------------------------------------+</pre>
   </div>
 
-  <!-- Load html2canvas AFTER body -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     window.onload = () => {
@@ -87,12 +86,8 @@
       const uploadInput = document.getElementById('uploadInput');
       const cardImage = document.getElementById('cardImage');
 
-      function getLines() {
-        return asciiEl.textContent.split('\\n');
-      }
-      function updateLines(lines) {
-        asciiEl.textContent = lines.join('\\n');
-      }
+      function getLines() { return asciiEl.textContent.split('\n'); }
+      function updateLines(lines) { asciiEl.textContent = lines.join('\n'); }
       function centerLine(text, idx, lines) {
         const w = lines[idx].length - 2;
         const pad = w - text.length;
@@ -100,7 +95,7 @@
         lines[idx] = '|' + ' '.repeat(l) + text + ' '.repeat(r) + '|';
       }
 
-      // Title
+      // Edit Title
       document.getElementById('editTitle').onclick = () => {
         const t = prompt('New title:');
         if (!t) return;
@@ -109,7 +104,7 @@
         updateLines(lines);
       };
 
-      // Image upload
+      // Upload Image
       document.getElementById('editImage').onclick = () => uploadInput.click();
       uploadInput.onchange = e => {
         const f = e.target.files[0];
@@ -119,17 +114,33 @@
         r.readAsDataURL(f);
       };
 
-      // Tweet fetch
+      // Edit Tweet
       document.getElementById('editTweet').onclick = async () => {
-        const url = prompt('Enter tweet URL:');
+        const url = prompt('Enter full tweet URL:');
+        console.log('User entered URL:', url);
         if (!url) return;
-        const m = url.match(/status\\/(\\d+)/);
-        if (!m) { alert('Invalid URL'); return; }
-        const id = m[1];
+
+        // Extract only the digits after "/status/"
+        const m = url.match(/status\/(\\d+)/);
+        console.log('Regex match result:', m);
+        if (!m) {
+          alert('Invalid URL – must contain "/status/<tweet_id>".');
+          return;
+        }
+        const tweetId = m[1];
+        console.log('Parsed tweet ID:', tweetId);
+
         try {
-          const res = await fetch(`/api/tweet?id=${id}`);
+          const apiPath = `/api/tweet?id=${encodeURIComponent(tweetId)}`;
+          console.log('Fetching from:', apiPath);
+          const res = await fetch(apiPath);
           const json = await res.json();
-          if (!res.ok) throw new Error(json.error || res.status);
+          console.log('API response:', json, 'Status:', res.status);
+
+          if (!res.ok || json.error) {
+            throw new Error(json.error || `Status ${res.status}`);
+          }
+
           const lines = getLines();
           centerLine(json.data.text.slice(0,37), 12, lines);
           const pm = json.data.public_metrics;
@@ -140,11 +151,11 @@
           );
           updateLines(lines);
         } catch (err) {
-          alert('Error: ' + err.message);
+          alert('Error fetching tweet: ' + err.message);
         }
       };
 
-      // Download
+      // Download PNG
       document.getElementById('downloadBtn').onclick = () => {
         html2canvas(document.getElementById('card')).then(canvas => {
           const a = document.createElement('a');
