@@ -23,9 +23,16 @@ export default async function handler(req, res) {
 
     if (twitterResp.status === 429) {
       const reset = twitterResp.headers.get('x-rate-limit-reset');
-      const waitUntil = reset ? new Date(+reset * 1000).toLocaleTimeString() : '?';
-      return res.status(429).json({ error: `Rate limit exceeded; try again later. (resets at ${waitUntil})` });
+      if (reset) {
+        const now = Math.floor(Date.now() / 1000);
+        const waitSeconds = +reset - now;
+        const waitMins = Math.max(1, Math.ceil(waitSeconds / 60));
+        return res.status(429).json({ error: `Rate limit exceeded; try again later (in ${waitMins} min${waitMins > 1 ? 's' : ''})` });
+      } else {
+        return res.status(429).json({ error: 'Rate limit exceeded; try again soon.' });
+      }
     }
+
 
     const json = await twitterResp.json();
 
