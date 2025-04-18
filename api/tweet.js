@@ -14,14 +14,33 @@ export default async function handler(req, res) {
     return;
   }
 
+  // sanitize to digits only
+  const cleanIdMatch = id.match(/^(\d+)$/);
+  if (!cleanIdMatch) {
+    res.status(400).json({ error: 'Invalid tweet id format' });
+    return;
+  }
+  const cleanId = cleanIdMatch[1];
+
   try {
-    const resp = await fetch(
-      `https://api.twitter.com/2/tweets/${id}?tweet.fields=public_metrics,text`,
-      { headers: { Authorization: `Bearer ${BEARER}` } }
-    );
+    // build URL with proper encoding
+    const apiUrl = new URL(`https://api.twitter.com/2/tweets/${cleanId}`);
+    apiUrl.searchParams.set('tweet.fields', 'public_metrics,text');
+
+    const resp = await fetch(apiUrl.toString(), {
+      headers: { Authorization: `Bearer ${BEARER}` }
+    });
+
     const data = await resp.json();
+
+    // if Twitter returned an errors array, surface the first detail
+    if (data.errors && data.errors.length) {
+      res.status(resp.status).json({ error: data.errors[0].detail });
+      return;
+    }
+
     res.status(resp.status).json(data);
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    res.status(500).json({ error: err.message });
   }
 }
