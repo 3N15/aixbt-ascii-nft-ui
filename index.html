@@ -8,63 +8,33 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       background:#0a0a0a;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:flex-start;
-      min-height:100vh;
-      padding:20px;
-      font-family:'Space Mono',monospace;
-      color:#00ffff;
+      display:flex; flex-direction:column; align-items:center; padding:20px;
+      font-family:'Space Mono',monospace; color:#00ffff;
     }
-    .controls {
-      margin-bottom:16px;
-    }
+    .controls { margin-bottom:16px; }
     .controls button {
-      margin-right:8px;
-      margin-bottom:8px;
-      padding:8px 16px;
-      background:#00ffff;
-      color:#0a0a0a;
-      border:none;
-      border-radius:4px;
-      cursor:pointer;
+      margin-right:8px; margin-bottom:8px;
+      padding:8px 16px; background:#00ffff; color:#0a0a0a;
+      border:none; border-radius:4px; cursor:pointer;
       font-family:'Space Mono',monospace;
     }
-    .controls button:hover {
-      background:#33ffff;
-    }
+    .controls button:hover { background:#33ffff; }
     .card {
-      width:360px;
-      height:560px;
-      padding:20px;
+      width:360px; height:560px; padding:20px;
       background:linear-gradient(145deg,#111,#000);
       border-radius:16px;
       box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
-      position:relative;
-      overflow:hidden;
+      position:relative; overflow:hidden;
     }
     .ascii-img {
-      position:absolute;
-      top:106px;
-      left:24px;
-      width:312px;
-      height:190px;
-      object-fit:cover;
-      z-index:1;
+      position:absolute; top:106px; left:24px;
+      width:312px; height:190px; object-fit:cover; z-index:1;
     }
     .ascii {
-      position:absolute;
-      top:20px;
-      left:24px;
-      width:312px;
-      white-space:pre;
-      font-size:14px;
-      line-height:1.4;
-      letter-spacing:0;
-      z-index:2;
-      color:#00ffff;
-      cursor:text;
+      position:absolute; top:20px; left:24px;
+      width:312px; white-space:pre;
+      font-size:14px; line-height:1.4; letter-spacing:0;
+      z-index:2; color:#00ffff; cursor:text;
     }
     #uploadInput { display:none; }
   </style>
@@ -117,23 +87,15 @@
       const upInput  = document.getElementById('uploadInput');
       const cardImg  = document.getElementById('cardImage');
 
-      function getLines() {
-        return asciiEl.textContent.split('\n');
+      function getLines() { return asciiEl.textContent.split('\n'); }
+      function updateLines(l) { asciiEl.textContent = l.join('\n'); }
+      function centerLine(t,i,l){
+        const w = l[i].length - 2;
+        const p = w - t.length;
+        const lf = Math.floor(p/2), rt = p - lf;
+        l[i] = '|' + ' '.repeat(lf) + t + ' '.repeat(rt) + '|';
       }
 
-      function updateLines(lines) {
-        asciiEl.textContent = lines.join('\n');
-      }
-
-      function centerLine(text, index, lines) {
-        const width = lines[index].length - 2;
-        const pad   = width - text.length;
-        const left  = Math.floor(pad/2);
-        const right = pad - left;
-        lines[index] = '|' + ' '.repeat(left) + text + ' '.repeat(right) + '|';
-      }
-
-      // Edit Title
       document.getElementById('editTitle').onclick = () => {
         const t = prompt('Enter new title:');
         if (!t) return;
@@ -142,39 +104,36 @@
         updateLines(lines);
       };
 
-      // Upload Image
       document.getElementById('editImage').onclick = () => upInput.click();
       upInput.onchange = e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => cardImg.src = reader.result;
-        reader.readAsDataURL(file);
+        const f = e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = () => cardImg.src = r.result;
+        r.readAsDataURL(f);
       };
 
-      // Edit Tweet (numeric-only extraction)
       document.getElementById('editTweet').onclick = async () => {
         const raw = prompt('Paste full tweet URL:');
         if (!raw) return;
 
-        // extract all digit-chunks and pick last
-        const chunks = raw.match(/\d+/g);
-        if (!chunks) {
+        // grab every group of digits; take the last one
+        const nums = raw.match(/\d+/g);
+        if (!nums) {
           alert('No numeric ID found.');
           return;
         }
-        const tweetId = chunks[chunks.length-1];
+        const tweetId = nums[nums.length - 1];
 
         try {
-          const resp = await fetch(`/api/tweet?id=${encodeURIComponent(tweetId)}`);
-          const json = await resp.json();
-          if (!resp.ok || json.error) {
-            throw new Error(json.error || `HTTP ${resp.status}`);
+          const res = await fetch(`/api/tweet?id=${encodeURIComponent(tweetId)}`);
+          const js  = await res.json();
+          if (!res.ok) {
+            throw new Error(js.error || `HTTP ${res.status}`);
           }
 
           const lines = getLines();
-          centerLine(json.data.text.slice(0,37), 12, lines);
-          const pm = json.data.public_metrics;
+          centerLine(js.data.text.slice(0,37), 12, lines);
+          const pm = js.data.public_metrics;
           centerLine(
             `C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}`,
             18,
@@ -186,7 +145,6 @@
         }
       };
 
-      // Download PNG
       document.getElementById('downloadBtn').onclick = () => {
         html2canvas(document.getElementById('card')).then(canvas => {
           const a = document.createElement('a');
