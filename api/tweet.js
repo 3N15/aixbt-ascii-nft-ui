@@ -1,4 +1,4 @@
-// /api/tweet.js
+// api/tweet.js
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
@@ -22,6 +22,6 @@ export default async function handler(req, res) {
     const data = await resp.json();
     res.status(resp.status).json(data);
   } catch (err) {
-    res.status(500).json({ error: err.toString() });
+    res.status(500).json({ error: String(err) });
   }
 }
