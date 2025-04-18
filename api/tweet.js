@@ -1,24 +1,31 @@
-document.getElementById('editTweet').onclick = async () => {
-  const tweetUrl = prompt('Enter tweet URL:');
-  if (!tweetUrl) return;
+// /api/tweet.js
+import fetch from 'node-fetch';
 
-  const tweetId = tweetUrl.split('/').pop();
-  try {
-    const resp = await fetch(`/api/tweet?id=${tweetId}`);
-    const data = await resp.json();
-    if (resp.ok && data.data) {
-      const txt = data.data.text;
-      centerLine(txt.slice(0,37), 12);
-
-      const m = data.data.public_metrics;
-      const eng = `C:${m.reply_count} R:${m.retweet_count} L:${m.like_count} B:${m.quote_count}`;
-      centerLine(eng, 18);
-
-      asciiEl.innerText = lines.join('\n');
-    } else {
-      alert('Error loading tweet: ' + (data.error || JSON.stringify(data)));
-    }
-  } catch (e) {
-    alert('Fetch failed: ' + e);
+export default async function handler(req, res) {
+  const { id } = req.query;
+  if (!id) {
+    res.status(400).json({ error: 'Missing tweet id' });
+    return;
   }
-};
+
+  const BEARER = process.env.TWITTER_BEARER_TOKEN;
+  if (!BEARER) {
+    res.status(500).json({ error: 'Bearer token not configured' });
+    return;
+  }
+
+  try {
+    const resp = await fetch(
+      `https://api.twitter.com/2/tweets/${id}?tweet.fields=public_metrics,text`,
+      {
+        headers: {
+          Authorization: `Bearer ${BEARER}`
+        }
+      }
+    );
+    const data = await resp.json();
+    res.status(resp.status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.toString() });
+  }
+}
