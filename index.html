@@ -9,49 +9,37 @@
     body {
       background: #0a0a0a;
       display: flex; flex-direction: column; align-items: center;
-      padding: 20px;
-      font-family: 'Space Mono', monospace;
-      color: #00ffff;
+      padding: 20px; font-family: 'Space Mono', monospace; color: #00ffff;
     }
     .controls { margin-bottom: 16px; }
     .controls button {
-      margin-right: 8px; margin-bottom: 8px;
-      padding: 8px 16px;
-      background: #00ffff; color: #0a0a0a;
-      border: none; border-radius: 4px;
-      cursor: pointer; font-family: 'Space Mono', monospace;
+      margin-right:8px; margin-bottom:8px;
+      padding:8px 16px; background:#00ffff; color:#0a0a0a;
+      border:none; border-radius:4px; cursor:pointer;
     }
-    .controls button:hover { background: #33ffff; }
+    .controls button:hover { background:#33ffff; }
     .card {
-      width: 360px; height: 560px; padding: 20px;
-      background: linear-gradient(145deg,#111,#000);
-      border-radius: 16px;
-      box-shadow: 0 4px 8px rgba(0,255,255,0.2), 0 8px 16px rgba(0,255,255,0.1);
-      position: relative; overflow: hidden;
+      width:360px; height:560px; padding:20px;
+      background:linear-gradient(145deg,#111,#000);
+      border-radius:16px; box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
+      position:relative; overflow:hidden;
     }
-    .ascii-img {
-      position: absolute; top: 106px; left: 24px;
-      width: 312px; height: 190px; object-fit: cover; z-index: 1;
-    }
+    .ascii-img { position:absolute; top:106px; left:24px; width:312px; height:190px; object-fit:cover; z-index:1; }
     .ascii {
-      position: absolute; top: 20px; left: 24px;
-      width: 312px; white-space: pre;
-      font-size: 14px; line-height: 1.4; letter-spacing: 0;
-      z-index: 2; color: #00ffff; cursor: text;
+      position:absolute; top:20px; left:24px; width:312px; white-space:pre;
+      font-size:14px; line-height:1.4; letter-spacing:0; z-index:2; color:#00ffff; cursor:text;
     }
-    #uploadInput { display: none; }
+    #uploadInput { display:none; }
   </style>
 </head>
 <body>
-
   <div class="controls">
     <button id="editTitle">Edit Title</button>
     <button id="editImage">Upload Image</button>
     <button id="editTweet">Edit Tweet</button>
     <button id="downloadBtn">Download PNG</button>
-    <input type="file" id="uploadInput" accept="image/*">
+    <input type="file" id="uploadInput" accept="image/*" />
   </div>
-
   <div class="card" id="card">
     <img id="cardImage" class="ascii-img"
          src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -92,67 +80,69 @@
       const upInput = document.getElementById('uploadInput');
       const cardImg = document.getElementById('cardImage');
 
-      function getLines() { return asciiEl.textContent.split('\\n'); }
-      function updateLines(lines) { asciiEl.textContent = lines.join('\\n'); }
-      function centerLine(text, idx, lines) {
-        const width = lines[idx].length - 2;
-        const pad = width - text.length;
-        const left = Math.floor(pad/2), right = pad - left;
-        lines[idx] = '|' + ' '.repeat(left) + text + ' '.repeat(right) + '|';
+      function getLines() { return asciiEl.textContent.split('\n'); }
+      function updateLines(lines) { asciiEl.textContent = lines.join('\n'); }
+      function centerLine(txt, i, lines) {
+        const w = lines[i].length - 2, pad = w - txt.length;
+        const lf = Math.floor(pad/2), rt = pad - lf;
+        lines[i] = '|'+' '.repeat(lf)+txt+' '.repeat(rt)+'|';
       }
 
-      document.getElementById('editTitle').onclick = function() {
+      document.getElementById('editTitle').onclick = () => {
         const t = prompt('Enter new title:'); if (!t) return;
-        const lines = getLines(); centerLine(t, 1, lines); updateLines(lines);
+        const l = getLines(); centerLine(t, 1, l); updateLines(l);
       };
 
-      document.getElementById('editImage').onclick = function() { upInput.click(); };
-      upInput.onchange = function(e) {
-        const file = e.target.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function() { cardImg.src = reader.result; };
-        reader.readAsDataURL(file);
+      document.getElementById('editImage').onclick = () => upInput.click();
+      upInput.onchange = e => {
+        const f = e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = () => cardImg.src = r.result;
+        r.readAsDataURL(f);
       };
 
-      document.getElementById('editTweet').onclick = async function() {
+      document.getElementById('editTweet').onclick = async () => {
         const raw = prompt('Paste full tweet URL:'); if (!raw) return;
 
         let tweetId = null;
-        // 1) Try URL parser
+        // URL parser
         try {
-          const urlObj = new URL(raw);
-          const parts = urlObj.pathname.split('/').filter(Boolean);
-          const idx = parts.indexOf('status');
-          if (idx >= 0 && parts[idx+1]) tweetId = parts[idx+1];
-        } catch(e) {}
-        // 2) Fallback: first numeric chunk >10 digits
+          const u = new URL(raw);
+          const seg = u.pathname.split('/').filter(Boolean);
+          const idx = seg.indexOf('status');
+          if (idx >= 0 && seg[idx+1]) tweetId = seg[idx+1];
+        } catch {}
+        // fallback numeric
         if (!tweetId) {
-          const nums = raw.match(/\\d+/g) || [];
-          tweetId = nums.find(n => n.length > 10) || nums[0];
+          const nums = raw.match(/\d+/g) || [];
+          tweetId = nums.find(n=>n.length>10) || nums[0];
         }
-        if (!tweetId) { alert('Could not extract tweet ID.'); return; }
+        if (!tweetId) { alert('Cannot extract tweet ID.'); return; }
 
         try {
           const resp = await fetch(`/api/tweet?id=${tweetId}`);
-          const data = await resp.json();
-          if (!resp.ok || data.error) {
-            throw new Error(data.error || 'HTTP ' + resp.status);
+          const js   = await resp.json();
+          if (resp.status === 429) {
+            alert(js.error);
+            return;
           }
-          const lines = getLines();
-          centerLine(data.data.text.slice(0, 37), 12, lines);
-          const pm = data.data.public_metrics;
+          if (!resp.ok) throw new Error(js.error||`HTTP ${resp.status}`);
+
+          const l = getLines();
+          centerLine(js.data.text.slice(0,37), 12, l);
+          const pm = js.data.public_metrics;
           centerLine(
             `C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}`,
-            18, lines
+            18, l
           );
-          updateLines(lines);
-        } catch(err) {
-          alert('Error fetching tweet: ' + err.message);
+          updateLines(l);
+        } catch (er) {
+          alert('Error fetching tweet: '+er.message);
         }
       };
 
-      document.getElementById('downloadBtn').onclick = function() {
-        html2canvas(document.getElementById('card')).then(function(canvas) {
+      document.getElementById('downloadBtn').onclick = () => {
+        html2canvas(document.getElementById('card')).then(canvas => {
           const a = document.createElement('a');
           a.download = 'aixbt_ascii_card.png';
           a.href = canvas.toDataURL('image/png');
