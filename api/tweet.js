@@ -1,60 +1,47 @@
-document.getElementById('editTweet').onclick = async () => {
-  const raw = prompt('Paste full tweet URL:');
-  if (!raw) return;
+// api/tweet.js
+export default async function handler(req, res) {
+  const { id } = req.query;
 
-  let tweetId = null;
-
-  try {
-    const u = new URL(raw);
-    const seg = u.pathname.split('/').filter(Boolean);
-    const idx = seg.indexOf('status');
-    if (idx >= 0 && seg[idx + 1]) tweetId = seg[idx + 1];
-  } catch {}
-  if (!tweetId) {
-    const nums = raw.match(/\d+/g) || [];
-    tweetId = nums.find(n => n.length > 10) || nums[0];
-  }
-  if (!tweetId) {
-    alert('Cannot extract tweet ID.');
-    return;
+  if (!id || !/^\d{10,}$/.test(id)) {
+    return res.status(400).json({ error: 'Invalid or missing tweet id' });
   }
 
+  const BEARER = process.env.TWITTER_BEARER_TOKEN;
+  if (!BEARER) {
+    return res.status(500).json({ error: 'Bearer token not configured' });
+  }
+
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+
   try {
-    const resp = await fetch(`/api/tweet?id=${tweetId}`);
-    const js = await resp.json();
+    const url = new URL(`https://api.twitter.com/2/tweets/${id}`);
+    url.searchParams.set('tweet.fields', 'public_metrics,text');
 
-    if (resp.status === 429) {
-      alert(js.error);
-      return;
+    const twitterResp = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${BEARER}` }
+    });
+
+  if (twitterResp.status === 429) {
+    const reset = twitterResp.headers.get('x-rate-limit-reset');
+    if (reset) {
+      const now = Math.floor(Date.now() / 1000);
+      const waitSeconds = +reset - now;
+      const waitMins = Math.max(1, Math.ceil(waitSeconds / 60));
+      return res.status(429).json({ error: `Rate limit exceeded; try again later (in ${waitMins} min${waitMins > 1 ? 's' : ''})` });
+    } else {
+      return res.status(429).json({ error: 'Rate limit exceeded; try again soon.' });
     }
-    if (!resp.ok) throw new Error(js.error || `HTTP ${resp.status}`);
+  }
 
-    const tweetText = js.data.text;
-    const pm = js.data.public_metrics;
 
-    const lines = getLines();
+    const json = await twitterResp.json();
 
-    // Clear and insert tweet text into rows 12–16
-    for (let i = 12; i <= 16; i++) {
-      lines[i] = '|                                    |'; // reset
+    if (!twitterResp.ok || json.errors) {
+      return res.status(twitterResp.status).json({ error: json.errors?.[0]?.detail || 'Unknown Twitter API error' });
     }
 
-    const contentLines = tweetText.match(/.{1,36}/g) || [];
-    for (let i = 0; i < Math.min(5, contentLines.length); i++) {
-      const text = contentLines[i];
-      const pad = 36 - text.length;
-      lines[12 + i] = `|${text}${' '.repeat(pad)}|`;
-    }
-
-    // Format metrics and center them on line 18
-    const metrics = `C:${pm.reply_count}  R:${pm.retweet_count}  L:${pm.like_count}  B:${pm.quote_count}`;
-    const pad = 36 - metrics.length;
-    const lpad = Math.floor(pad / 2), rpad = pad - lpad;
-    lines[18] = '|' + ' '.repeat(lpad) + metrics + ' '.repeat(rpad) + '|';
-
-    updateLines(lines);
-
+    return res.status(200).json(json);
   } catch (err) {
-    alert('Error fetching tweet: ' + err.message);
+    return res.status(500).json({ error: err.message });
   }
-};
+}
