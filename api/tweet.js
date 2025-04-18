@@ -12,32 +12,43 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Ensure id is only digits
-  const match = id.match(/^(\d+)$/);
-  if (!match) {
+  // ensure digits only
+  const m = id.match(/^(\d+)$/);
+  if (!m) {
     res.status(400).json({ error: 'Invalid tweet id format' });
     return;
   }
-  const cleanId = match[1];
+  const cleanId = m[1];
 
   try {
-    // Build the Twitter API URL
+    // build URL
     const apiUrl = new URL(`https://api.twitter.com/2/tweets/${cleanId}`);
     apiUrl.searchParams.set('tweet.fields', 'public_metrics,text');
 
-    // Use the global fetch
-    const resp = await fetch(apiUrl.toString(), {
+    const resp = await fetch(apiUrl, {
       headers: { Authorization: `Bearer ${BEARER}` }
     });
+
+    // rate limit?
+    if (resp.status === 429) {
+      const reset = resp.headers.get('x-rate-limit-reset');
+      let msg = 'Rate limit exceeded, please try again later.';
+      if (reset) {
+        const resetDate = new Date(reset * 1000);
+        msg += ` (resets at ${resetDate.toLocaleTimeString()})`;
+      }
+      res.status(429).json({ error: msg });
+      return;
+    }
+
     const data = await resp.json();
 
-    // Surface any Twitter errors
     if (data.errors && data.errors.length) {
       res.status(resp.status).json({ error: data.errors[0].detail });
       return;
     }
 
-    res.status(resp.status).json(data);
+    res.status(200).json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
