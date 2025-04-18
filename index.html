@@ -1,55 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>AIXBT ASCII NFT Card – Interactive</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #0a0a0a;
       display: flex; flex-direction: column; align-items: center;
-      padding: 20px;
-      font-family: 'Space Mono', monospace;
-      color: #00ffff;
+      padding: 20px; font-family: 'Space Mono', monospace; color: #00ffff;
     }
     .controls { margin-bottom: 16px; }
     .controls button {
       margin-right: 8px; margin-bottom: 8px;
-      padding: 8px 16px;
-      background: #00ffff; color: #0a0a0a;
-      border: none; border-radius: 4px;
-      cursor: pointer;
+      padding: 8px 16px; background: #00ffff; color: #0a0a0a;
+      border: none; border-radius: 4px; cursor: pointer;
     }
     .controls button:hover { background: #33ffff; }
     .card {
       width: 360px; height: 560px; padding: 20px;
       background: linear-gradient(145deg,#111,#000);
       border-radius: 16px;
-      box-shadow: 0 4px 8px rgba(0,255,255,0.2), 0 8px 16px rgba(0,255,255,0.1);
-      position: relative;
-      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
+      position: relative; overflow: hidden;
     }
     .ascii-img {
-      position: absolute;
-      top: 106px;
-      left: 24px;
-      width: 312px;
-      height: 190px;
-      object-fit: cover;
-      z-index: 1;
+      position: absolute; top: 106px; left: 24px;
+      width: 312px; height: 190px; object-fit: cover; z-index: 1;
     }
     .ascii {
-      position: absolute;
-      top: 20px;
-      left: 24px;
-      width: 312px;
-      white-space: pre;
-      font-size: 14px;
-      line-height: 1.4;
-      letter-spacing: 0;
-      z-index: 2;
-      color: #00ffff;
+      position: absolute; top: 20px; left: 24px;
+      width: 312px; white-space: pre; font-size: 14px;
+      line-height: 1.4; letter-spacing: 0; z-index: 2; color: #00ffff;
       cursor: text;
     }
     #uploadInput { display: none; }
@@ -65,8 +48,9 @@
   </div>
 
   <div class="card" id="card">
-    <img id="cardImage" class="ascii-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Image" />
-    <pre id="ascii" class="ascii">+------------------------------------+
+    <img id="cardImage" class="ascii-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Image">
+    <pre id="ascii" class="ascii">
++------------------------------------+
 |        INSIDER WALLET DUMP         |
 +------------------------------------+
 
@@ -127,7 +111,6 @@
       };
 
       document.getElementById('editImage').onclick = () => uploadInput.click();
-
       uploadInput.onchange = e => {
         const file = e.target.files[0];
         if (!file) return;
@@ -146,7 +129,8 @@
           const seg = u.pathname.split('/').filter(Boolean);
           const idx = seg.indexOf('status');
           if (idx >= 0 && seg[idx + 1]) tweetId = seg[idx + 1];
-        } catch {}
+        } catch { }
+
         if (!tweetId) {
           const nums = raw.match(/\d+/g) || [];
           tweetId = nums.find(n => n.length > 10) || nums[0];
@@ -171,25 +155,21 @@
           const pm = js.data.public_metrics;
           const lines = getLines();
 
-          // Clear the tweet section (lines 13–17)
-          for (let i = 13; i <= 17; i++) {
-            lines[i] = '|                                    |';
-          }
-
-          // Fill tweet text (wrapped into 5 lines max)
+          // Insert tweet text in lines 19–23 (5 lines)
+          for (let i = 19; i <= 23; i++) lines[i] = '|                                    |';
           const contentLines = tweetText.match(/.{1,36}/g) || [];
           for (let i = 0; i < Math.min(5, contentLines.length); i++) {
             const text = contentLines[i];
             const pad = 36 - text.length;
-            lines[13 + i] = `|${text}${' '.repeat(pad)}|`;
+            lines[19 + i] = `|${text}${' '.repeat(pad)}|`;
           }
 
-          // Clear and center updated metrics (line 20)
-          lines[20] = '|                                    |';
+          // Insert metrics in line 26
+          lines[26] = '|                                    |';
           const metrics = `C:${pm.reply_count}  R:${pm.retweet_count}  L:${pm.like_count}  B:${pm.bookmark_count ?? 0}`;
           const pad = 36 - metrics.length;
-          const left = Math.floor(pad / 2), right = pad - left;
-          lines[20] = '|' + ' '.repeat(left) + metrics + ' '.repeat(right) + '|';
+          const lpad = Math.floor(pad / 2), rpad = pad - lpad;
+          lines[26] = '|' + ' '.repeat(lpad) + metrics + ' '.repeat(rpad) + '|';
 
           updateLines(lines);
         } catch (err) {
