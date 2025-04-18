@@ -9,8 +9,9 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: #0a0a0a;
-    display: flex; align-items: center; justify-content: center;
-    height: 100vh; font-family: 'Space Mono', monospace; color: #00ffff;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    min-height: 100vh; font-family: 'Space Mono', monospace; color: #00ffff;
+    padding-top: 20px;
   }
   .card {
     width: 360px; height: 560px; padding: 20px;
@@ -19,15 +20,9 @@
     box-shadow: 0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
     position: relative; overflow: hidden;
   }
-  /* Position image exactly under second ASCII block */
   .ascii-img {
-    position: absolute;
-    top: 106px;         /* 20px padding + 4 rows * ~19.6px line-height */
-    left: 24px;
-    width: 312px;      /* 360 - 20*2 */
-    height: 190px;      /* 10 rows * ~19.6px */
-    object-fit: cover;
-    z-index: 1;
+    position: absolute; top: 106px; left: 24px;
+    width: 312px; height: 190px; object-fit: cover; z-index: 1;
   }
   .ascii {
     position: absolute; top: 20px; left: 20px;
@@ -35,13 +30,19 @@
     font-size: 14px; line-height: 1.4; z-index: 2;
     color: #ae78f2;
   }
+  #downloadBtn {
+    margin-top: 20px; padding: 10px 20px;
+    background: #00ffff; color: #0a0a0a;
+    border: none; border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+  }
+  #downloadBtn:hover { background: #33ffff; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <!-- Embed your image file in the second ASCII block -->
+  <div class="card" id="card">
     <img src="37FED526-B80D-4288-BBEE-9A5E646D3E2E.png" class="ascii-img" alt="content"/>
-
     <pre class="ascii">
 +------------------------------------+
 |        INSIDER WALLET DUMP         |
@@ -73,4 +74,18 @@
 +------------------------------------+
     </pre>
   </div>
+  <button id="downloadBtn">Download PNG</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    document.getElementById('downloadBtn').addEventListener('click', function() {
+      html2canvas(document.getElementById('card')).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'aixbt_ascii_card.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    });
+  </script>
 </body>
+</html>
