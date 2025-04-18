@@ -22,16 +22,13 @@
     .card {
       width:360px; height:560px; padding:20px;
       background:linear-gradient(145deg,#111,#000);
-      border-radius:16px;
-      box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
+      border-radius:16px; box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
       position:relative; overflow:hidden;
     }
-    /* Fixed 312×190 area for the image */
     .ascii-img {
       position:absolute; top:106px; left:24px;
       width:312px; height:190px; object-fit:cover; z-index:1;
     }
-    /* Pixel‑perfect ASCII overlay */
     .ascii {
       position:absolute; top:20px; left:24px;
       width:312px; white-space:pre; letter-spacing:0;
@@ -99,60 +96,71 @@
     }
 
     // Edit Title
-    document.getElementById('editTitle').addEventListener('click', () => {
-      const t = prompt('Enter new title:');
-      if (t) {
-        const lines = getLines();
-        centerLine(t, 1, lines);
-        updateLines(lines);
-      }
-    });
+    document.getElementById('editTitle').onclick = () => {
+      const t = prompt('New title:');
+      if (!t) return;
+      const lines = getLines();
+      centerLine(t, 1, lines);
+      updateLines(lines);
+    };
 
     // Upload Image
-    document.getElementById('editImage').addEventListener('click', () => {
+    document.getElementById('editImage').onclick = () =>
       document.getElementById('uploadInput').click();
-    });
-    document.getElementById('uploadInput').addEventListener('change', e => {
+    document.getElementById('uploadInput').onchange = e => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = () => document.getElementById('cardImage').src = reader.result;
+      reader.onload = () => 
+        document.getElementById('cardImage').src = reader.result;
       reader.readAsDataURL(file);
-    });
+    };
 
     // Edit Tweet
-    document.getElementById('editTweet').addEventListener('click', async () => {
+    document.getElementById('editTweet').onclick = async () => {
       const url = prompt('Enter tweet URL:');
       if (!url) return;
-      const m = url.match(/status\/(\d+)/);
+
+      // 1) Extract exactly the numeric ID
+      const m = url.match(/status\\/(\\d+)/);
       if (!m) { alert('Invalid URL'); return; }
       const id = m[1];
 
+      // 2) Fetch YOUR proxy
+      let resp, json;
       try {
-        const res = await fetch(`/api/tweet?id=${encodeURIComponent(id)}`);
-        const json = await res.json();
-        if (!res.ok || json.error) throw new Error(json.error || res.status);
-
-        const lines = getLines();
-        centerLine(json.data.text.slice(0,37), 12, lines);
-        const pm = json.data.public_metrics;
-        const eng = \`C:\${pm.reply_count} R:\${pm.retweet_count} L:\${pm.like_count} B:\${pm.quote_count}\`;
-        centerLine(eng, 18, lines);
-        updateLines(lines);
+        resp = await fetch(`/api/tweet?id=${encodeURIComponent(id)}`);
+        json = await resp.json();
       } catch (err) {
-        alert('Fetch/API error: ' + err.message);
+        alert('Network error: ' + err.message);
+        return;
       }
-    });
+      if (!resp.ok || json.error) {
+        alert('API error: ' + (json.error||resp.status));
+        return;
+      }
+
+      // 3) Update lines
+      const lines = getLines();
+      centerLine(json.data.text.slice(0,37), 12, lines);
+      const pm = json.data.public_metrics;
+      centerLine(
+        \`C:\${pm.reply_count} R:\${pm.retweet_count} L:\${pm.like_count} B:\${pm.quote_count}\`,
+        18,
+        lines
+      );
+      updateLines(lines);
+    };
 
     // Download PNG
-    document.getElementById('downloadBtn').addEventListener('click', () => {
+    document.getElementById('downloadBtn').onclick = () => {
       html2canvas(document.getElementById('card')).then(canvas => {
         const a = document.createElement('a');
         a.download = 'aixbt_ascii_card.png';
         a.href = canvas.toDataURL('image/png');
         a.click();
       });
-    });
+    };
   </script>
 </body>
 </html>
