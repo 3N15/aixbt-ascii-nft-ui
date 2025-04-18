@@ -5,36 +5,41 @@
   <title>AIXBT ASCII NFT Card – Interactive</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
+    * { margin:0; padding:0; box-sizing:border-box }
     body {
-      background:#0a0a0a;
-      display:flex; flex-direction:column; align-items:center; padding:20px;
-      font-family:'Space Mono',monospace; color:#00ffff;
+      background: #0a0a0a;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 20px;
+      font-family: 'Space Mono', monospace;
+      color: #00ffff;
     }
-    .controls { margin-bottom:16px; }
+    .controls { margin-bottom: 16px; }
     .controls button {
-      margin-right:8px; margin-bottom:8px;
-      padding:8px 16px; background:#00ffff; color:#0a0a0a;
-      border:none; border-radius:4px; cursor:pointer;
-      font-family:'Space Mono',monospace;
+      margin-right: 8px; margin-bottom: 8px;
+      padding: 8px 16px;
+      background: #00ffff; color: #0a0a0a;
+      border: none; border-radius: 4px;
+      cursor: pointer; font-family: 'Space Mono', monospace;
     }
-    .controls button:hover { background:#33ffff; }
+    .controls button:hover { background: #33ffff; }
     .card {
-      width:360px; height:560px; padding:20px;
-      background:linear-gradient(145deg,#111,#000);
-      border-radius:16px; box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
-      position:relative; overflow:hidden;
+      width: 360px; height: 560px; padding: 20px;
+      background: linear-gradient(145deg,#111,#000);
+      border-radius: 16px;
+      box-shadow: 0 4px 8px rgba(0,255,255,0.2), 0 8px 16px rgba(0,255,255,0.1);
+      position: relative; overflow: hidden;
     }
     .ascii-img {
-      position:absolute; top:106px; left:24px;
-      width:312px; height:190px; object-fit:cover; z-index:1;
+      position: absolute; top: 106px; left: 24px;
+      width: 312px; height: 190px; object-fit: cover; z-index: 1;
     }
     .ascii {
-      position:absolute; top:20px; left:24px;
-      width:312px; white-space:pre; font-size:14px; line-height:1.4; letter-spacing:0;
-      z-index:2; color:#00ffff; cursor:text;
+      position: absolute; top: 20px; left: 24px;
+      width: 312px; white-space: pre;
+      font-size: 14px; line-height: 1.4; letter-spacing: 0;
+      z-index: 2; color: #00ffff; cursor: text;
     }
-    #uploadInput { display:none; }
+    #uploadInput { display: none; }
   </style>
 </head>
 <body>
@@ -44,11 +49,15 @@
     <button id="editImage">Upload Image</button>
     <button id="editTweet">Edit Tweet</button>
     <button id="downloadBtn">Download PNG</button>
-    <input type="file" id="uploadInput" accept="image/*" />
+    <input type="file" id="uploadInput" accept="image/*">
   </div>
 
   <div class="card" id="card">
-    <img id="cardImage" class="ascii-img" src="placeholder.png" alt="content"/>
+    <!-- Transparent 1×1 GIF so no 404 on load -->
+    <img id="cardImage"
+         class="ascii-img"
+         src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+         alt="content">
     <pre id="ascii" class="ascii">+------------------------------------+
 |        INSIDER WALLET DUMP         |
 +------------------------------------+
@@ -78,82 +87,116 @@
 +------------------------------------+</pre>
   </div>
 
+  <!-- html2canvas for PNG export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
-    window.onload = () => {
-      const asciiEl  = document.getElementById('ascii');
-      const upInput  = document.getElementById('uploadInput');
-      const cardImg  = document.getElementById('cardImage');
+    window.onload = function() {
+      const asciiEl   = document.getElementById('ascii');
+      const upInput   = document.getElementById('uploadInput');
+      const cardImage = document.getElementById('cardImage');
 
-      const getLines   = () => asciiEl.textContent.split('\\n');
-      const updateLines= l => asciiEl.textContent = l.join('\\n');
-      const centerLine = (t,i,l) => {
-        const w = l[i].length - 2, pad = w - t.length;
-        const lf = Math.floor(pad/2), rt = pad - lf;
-        l[i] = '|' + ' '.repeat(lf) + t + ' '.repeat(rt) + '|';
+      function getLines() {
+        return asciiEl.textContent.split('\n');
+      }
+      function updateLines(lines) {
+        asciiEl.textContent = lines.join('\n');
+      }
+      function centerLine(text, idx, lines) {
+        const width    = lines[idx].length - 2;
+        const padding  = width - text.length;
+        const leftPad  = Math.floor(padding / 2);
+        const rightPad = padding - leftPad;
+        lines[idx] = '|' +
+                     ' '.repeat(leftPad) +
+                     text +
+                     ' '.repeat(rightPad) +
+                     '|';
+      }
+
+      // Edit Title
+      document.getElementById('editTitle').onclick = function() {
+        const title = prompt('Enter new title:');
+        if (!title) return;
+        const lines = getLines();
+        centerLine(title, 1, lines);
+        updateLines(lines);
       };
 
-      document.getElementById('editTitle').onclick = () => {
-        const t = prompt('Enter new title:'); if(!t)return;
-        const lines = getLines(); centerLine(t,1,lines); updateLines(lines);
+      // Upload Image
+      document.getElementById('editImage').onclick = function() {
+        upInput.click();
+      };
+      upInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function() {
+          cardImage.src = reader.result;
+        };
+        reader.readAsDataURL(file);
       };
 
-      document.getElementById('editImage').onclick = () => upInput.click();
-      upInput.onchange = e => {
-        const file = e.target.files[0]; if(!file)return;
-        const r = new FileReader();
-        r.onload = () => cardImg.src = r.result;
-        r.readAsDataURL(file);
-      };
+      // Edit Tweet
+      document.getElementById('editTweet').onclick = async function() {
+        const raw = prompt('Paste full tweet URL:');
+        if (!raw) return;
 
-      document.getElementById('editTweet').onclick = async () => {
-        const raw = prompt('Paste full tweet URL:'); if(!raw)return;
-
-        // 1) Try URL parser
+        // 1) Try URL parser first
         let tweetId = null;
         try {
           const u = new URL(raw);
-          const seg = u.pathname.split('/').filter(Boolean);
-          const idx = seg.indexOf('status');
-          if(idx >= 0 && seg[idx+1]) tweetId = seg[idx+1];
-        } catch {}
+          const parts = u.pathname.split('/').filter(Boolean);
+          const idx   = parts.indexOf('status');
+          if (idx >= 0 && parts[idx+1]) {
+            tweetId = parts[idx+1];
+          }
+        } catch(e) {}
 
         // 2) Fallback: grab last numeric chunk
-        if(!tweetId) {
-          const nums = raw.match(/\\d+/g);
-          if(nums) tweetId = nums.pop();
+        if (!tweetId) {
+          const nums = raw.match(/\d+/g);
+          if (nums) tweetId = nums.pop();
         }
 
-        if(!tweetId) {
-          alert('Could not find tweet ID.');
+        if (!tweetId) {
+          alert('Unable to extract tweet ID.');
           return;
         }
 
         try {
           const resp = await fetch(`/api/tweet?id=${encodeURIComponent(tweetId)}`);
-          const js   = await resp.json();
-          if(!resp.ok || js.error) throw new Error(js.error||`HTTP ${resp.status}`);
+          const data = await resp.json();
+          if (!resp.ok || data.error) {
+            throw new Error(data.error || 'HTTP ' + resp.status);
+          }
 
           const lines = getLines();
-          centerLine(js.data.text.slice(0,37), 12, lines);
-          const pm = js.data.public_metrics;
-          centerLine(\`C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}\`, 18, lines);
+          centerLine(data.data.text.slice(0, 37), 12, lines);
+          const pm = data.data.public_metrics;
+          centerLine(
+            'C:' + pm.reply_count +
+            ' R:' + pm.retweet_count +
+            ' L:' + pm.like_count +
+            ' B:' + pm.quote_count,
+            18,
+            lines
+          );
           updateLines(lines);
-        } catch(err) {
+        } catch (err) {
           alert('Error fetching tweet: ' + err.message);
         }
       };
 
-      document.getElementById('downloadBtn').onclick = () => {
-        html2canvas(document.getElementById('card')).then(canvas => {
-          const a = document.createElement('a');
-          a.download = 'aixbt_ascii_card.png';
-          a.href = canvas.toDataURL('image/png');
-          a.click();
+      // Download PNG
+      document.getElementById('downloadBtn').onclick = function() {
+        html2canvas(document.getElementById('card')).then(function(canvas) {
+          const link = document.createElement('a');
+          link.download = 'aixbt_ascii_card.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
         });
       };
     };
   </script>
-
 </body>
 </html>
