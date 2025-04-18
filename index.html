@@ -49,7 +49,8 @@
 
   <div class="card" id="card">
     <img id="cardImage" class="ascii-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Image">
-    <pre id="ascii" class="ascii">+------------------------------------+
+    <pre id="ascii" class="ascii">
++------------------------------------+
 |        INSIDER WALLET DUMP         |
 +------------------------------------+
 
@@ -75,30 +76,37 @@
 |                                    |
 +------------------------------------+
 | C:0    | R:0    | L:0     | B:0    |
-+------------------------------------+</pre>
++------------------------------------+
+    </pre>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
-    window.onload = function() {
+    window.onload = function () {
       const asciiEl = document.getElementById('ascii');
       const uploadInput = document.getElementById('uploadInput');
       const cardImg = document.getElementById('cardImage');
 
-      function getLines() { return asciiEl.textContent.split('\n'); }
-      function updateLines(lines) { asciiEl.textContent = lines.join('\n'); }
+      function getLines() {
+        return asciiEl.textContent.split('\n');
+      }
+
+      function updateLines(lines) {
+        asciiEl.textContent = lines.join('\n');
+      }
+
       function centerLine(text, index, lines) {
-        const w = lines[index].length - 2;
-        const pad = Math.max(0, w - text.length);
+        const width = lines[index].length - 2;
+        const pad = Math.max(0, width - text.length);
         const left = Math.floor(pad / 2), right = pad - left;
         lines[index] = '|' + ' '.repeat(left) + text + ' '.repeat(right) + '|';
       }
 
       document.getElementById('editTitle').onclick = () => {
-        const t = prompt('Enter new title:');
-        if (!t) return;
+        const title = prompt('Enter new title:');
+        if (!title) return;
         const lines = getLines();
-        centerLine(t.slice(0, 36), 1, lines);
+        centerLine(title.slice(0, 36), 1, lines);
         updateLines(lines);
       };
 
@@ -112,66 +120,65 @@
       };
 
       document.getElementById('editTweet').onclick = async () => {
-  const raw = prompt('Paste full tweet URL:');
-  if (!raw) return;
+        const raw = prompt('Paste full tweet URL:');
+        if (!raw) return;
 
-  let tweetId = null;
+        let tweetId = null;
+        try {
+          const u = new URL(raw);
+          const seg = u.pathname.split('/').filter(Boolean);
+          const idx = seg.indexOf('status');
+          if (idx >= 0 && seg[idx + 1]) tweetId = seg[idx + 1];
+        } catch { }
 
-  try {
-    const u = new URL(raw);
-    const seg = u.pathname.split('/').filter(Boolean);
-    const idx = seg.indexOf('status');
-    if (idx >= 0 && seg[idx + 1]) tweetId = seg[idx + 1];
-  } catch {}
-  if (!tweetId) {
-    const nums = raw.match(/\d+/g) || [];
-    tweetId = nums.find(n => n.length > 10) || nums[0];
-  }
-  if (!tweetId) {
-    alert('Cannot extract tweet ID.');
-    return;
-  }
+        if (!tweetId) {
+          const nums = raw.match(/\d+/g) || [];
+          tweetId = nums.find(n => n.length > 10) || nums[0];
+        }
+        if (!tweetId) {
+          alert('Cannot extract tweet ID.');
+          return;
+        }
 
-  try {
-    const resp = await fetch(`/api/tweet?id=${tweetId}`);
-    const js = await resp.json();
+        try {
+          const resp = await fetch(`/api/tweet?id=${tweetId}`);
+          const js = await resp.json();
 
-    if (resp.status === 429) {
-      alert(js.error);
-      return;
-    }
-    if (!resp.ok) throw new Error(js.error || `HTTP ${resp.status}`);
+          if (resp.status === 429) {
+            alert(js.error);
+            return;
+          }
 
-    const tweetText = js.data.text;
-    const pm = js.data.public_metrics;
+          if (!resp.ok) throw new Error(js.error || `HTTP ${resp.status}`);
 
-    const lines = getLines();
+          const tweetText = js.data.text;
+          const pm = js.data.public_metrics;
+          const lines = getLines();
 
-    // Clear and insert tweet text into rows 12–16
-    for (let i = 12; i <= 16; i++) {
-      lines[i] = '|                                    |'; // reset
-    }
+          // Reset tweet text block (lines 13–17)
+          for (let i = 13; i <= 17; i++) {
+            lines[i] = '|                                    |';
+          }
 
-    const contentLines = tweetText.match(/.{1,36}/g) || [];
-    for (let i = 0; i < Math.min(5, contentLines.length); i++) {
-      const text = contentLines[i];
-      const pad = 36 - text.length;
-      lines[12 + i] = `|${text}${' '.repeat(pad)}|`;
-    }
+          const contentLines = tweetText.match(/.{1,36}/g) || [];
+          for (let i = 0; i < Math.min(5, contentLines.length); i++) {
+            const text = contentLines[i];
+            const pad = 36 - text.length;
+            lines[13 + i] = `|${text}${' '.repeat(pad)}|`;
+          }
 
-    // Format metrics and center them on line 18
-    const metrics = `C:${pm.reply_count}  R:${pm.retweet_count}  L:${pm.like_count}  B:${pm.quote_count}`;
-    const pad = 36 - metrics.length;
-    const lpad = Math.floor(pad / 2), rpad = pad - lpad;
-    lines[18] = '|' + ' '.repeat(lpad) + metrics + ' '.repeat(rpad) + '|';
+          // Reset and insert metrics (line 20)
+          lines[20] = '|                                    |';
+          const metrics = `C:${pm.reply_count}  R:${pm.retweet_count}  L:${pm.like_count}  B:${pm.bookmark_count ?? 0}`;
+          const pad = 36 - metrics.length;
+          const lpad = Math.floor(pad / 2), rpad = pad - lpad;
+          lines[20] = '|' + ' '.repeat(lpad) + metrics + ' '.repeat(rpad) + '|';
 
-    updateLines(lines);
-
-  } catch (err) {
-    alert('Error fetching tweet: ' + err.message);
-  }
-};
-
+          updateLines(lines);
+        } catch (err) {
+          alert('Error fetching tweet: ' + err.message);
+        }
+      };
 
       document.getElementById('downloadBtn').onclick = () => {
         html2canvas(document.getElementById('card')).then(canvas => {
