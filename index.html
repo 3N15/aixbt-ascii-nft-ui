@@ -22,8 +22,7 @@
     .card {
       width:360px; height:560px; padding:20px;
       background:linear-gradient(145deg,#111,#000);
-      border-radius:16px;
-      box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
+      border-radius:16px; box-shadow:0 4px 8px rgba(0,255,255,0.2),0 8px 16px rgba(0,255,255,0.1);
       position:relative; overflow:hidden;
     }
     .ascii-img {
@@ -32,8 +31,7 @@
     }
     .ascii {
       position:absolute; top:20px; left:24px;
-      width:312px; white-space:pre;
-      font-size:14px; line-height:1.4; letter-spacing:0;
+      width:312px; white-space:pre; font-size:14px; line-height:1.4; letter-spacing:0;
       z-index:2; color:#00ffff; cursor:text;
     }
     #uploadInput { display:none; }
@@ -87,60 +85,61 @@
       const upInput  = document.getElementById('uploadInput');
       const cardImg  = document.getElementById('cardImage');
 
-      function getLines() { return asciiEl.textContent.split('\n'); }
-      function updateLines(l) { asciiEl.textContent = l.join('\n'); }
-      function centerLine(t,i,l){
-        const w = l[i].length - 2;
-        const p = w - t.length;
-        const lf = Math.floor(p/2), rt = p - lf;
+      const getLines   = () => asciiEl.textContent.split('\\n');
+      const updateLines= l => asciiEl.textContent = l.join('\\n');
+      const centerLine = (t,i,l) => {
+        const w = l[i].length - 2, pad = w - t.length;
+        const lf = Math.floor(pad/2), rt = pad - lf;
         l[i] = '|' + ' '.repeat(lf) + t + ' '.repeat(rt) + '|';
-      }
+      };
 
       document.getElementById('editTitle').onclick = () => {
-        const t = prompt('Enter new title:');
-        if (!t) return;
-        const lines = getLines();
-        centerLine(t, 1, lines);
-        updateLines(lines);
+        const t = prompt('Enter new title:'); if(!t)return;
+        const lines = getLines(); centerLine(t,1,lines); updateLines(lines);
       };
 
       document.getElementById('editImage').onclick = () => upInput.click();
       upInput.onchange = e => {
-        const f = e.target.files[0]; if (!f) return;
+        const file = e.target.files[0]; if(!file)return;
         const r = new FileReader();
         r.onload = () => cardImg.src = r.result;
-        r.readAsDataURL(f);
+        r.readAsDataURL(file);
       };
 
       document.getElementById('editTweet').onclick = async () => {
-        const raw = prompt('Paste full tweet URL:');
-        if (!raw) return;
+        const raw = prompt('Paste full tweet URL:'); if(!raw)return;
 
-        // grab every group of digits; take the last one
-        const nums = raw.match(/\d+/g);
-        if (!nums) {
-          alert('No numeric ID found.');
+        // 1) Try URL parser
+        let tweetId = null;
+        try {
+          const u = new URL(raw);
+          const seg = u.pathname.split('/').filter(Boolean);
+          const idx = seg.indexOf('status');
+          if(idx >= 0 && seg[idx+1]) tweetId = seg[idx+1];
+        } catch {}
+
+        // 2) Fallback: grab last numeric chunk
+        if(!tweetId) {
+          const nums = raw.match(/\\d+/g);
+          if(nums) tweetId = nums.pop();
+        }
+
+        if(!tweetId) {
+          alert('Could not find tweet ID.');
           return;
         }
-        const tweetId = nums[nums.length - 1];
 
         try {
-          const res = await fetch(`/api/tweet?id=${encodeURIComponent(tweetId)}`);
-          const js  = await res.json();
-          if (!res.ok) {
-            throw new Error(js.error || `HTTP ${res.status}`);
-          }
+          const resp = await fetch(`/api/tweet?id=${encodeURIComponent(tweetId)}`);
+          const js   = await resp.json();
+          if(!resp.ok || js.error) throw new Error(js.error||`HTTP ${resp.status}`);
 
           const lines = getLines();
           centerLine(js.data.text.slice(0,37), 12, lines);
           const pm = js.data.public_metrics;
-          centerLine(
-            `C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}`,
-            18,
-            lines
-          );
+          centerLine(\`C:${pm.reply_count} R:${pm.retweet_count} L:${pm.like_count} B:${pm.quote_count}\`, 18, lines);
           updateLines(lines);
-        } catch (err) {
+        } catch(err) {
           alert('Error fetching tweet: ' + err.message);
         }
       };
