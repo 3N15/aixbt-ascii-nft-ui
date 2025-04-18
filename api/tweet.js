@@ -1,6 +1,4 @@
 // api/tweet.js
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
   const { id } = req.query;
   if (!id) {
@@ -14,26 +12,26 @@ export default async function handler(req, res) {
     return;
   }
 
-  // sanitize to digits only
-  const cleanIdMatch = id.match(/^(\d+)$/);
-  if (!cleanIdMatch) {
+  // Ensure id is only digits
+  const match = id.match(/^(\d+)$/);
+  if (!match) {
     res.status(400).json({ error: 'Invalid tweet id format' });
     return;
   }
-  const cleanId = cleanIdMatch[1];
+  const cleanId = match[1];
 
   try {
-    // build URL with proper encoding
+    // Build the Twitter API URL
     const apiUrl = new URL(`https://api.twitter.com/2/tweets/${cleanId}`);
     apiUrl.searchParams.set('tweet.fields', 'public_metrics,text');
 
+    // Use the global fetch
     const resp = await fetch(apiUrl.toString(), {
       headers: { Authorization: `Bearer ${BEARER}` }
     });
-
     const data = await resp.json();
 
-    // if Twitter returned an errors array, surface the first detail
+    // Surface any Twitter errors
     if (data.errors && data.errors.length) {
       res.status(resp.status).json({ error: data.errors[0].detail });
       return;
