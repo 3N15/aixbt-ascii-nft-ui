@@ -1,6 +1,7 @@
+// /api/tweet.js
 export default async function handler(req, res) {
   const { id } = req.query;
-  if (!id || !/^\d+$/.test(id)) {
+  if (!id || !/^[0-9]{5,}$/.test(id)) {
     return res.status(400).json({ error: 'Invalid or missing tweet id' });
   }
 
@@ -9,35 +10,43 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Bearer token not configured' });
   }
 
-  // Cache response for 60 seconds
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+  // TEMP: Disable caching for debug
+  res.setHeader('Cache-Control', 'no-store');
 
   try {
     const apiUrl = new URL(`https://api.twitter.com/2/tweets/${id}`);
     apiUrl.searchParams.set('tweet.fields', 'public_metrics,text');
 
-    const response = await fetch(apiUrl.toString(), {
+    const resp = await fetch(apiUrl.toString(), {
       headers: { Authorization: `Bearer ${BEARER}` }
     });
 
-    if (response.status === 429) {
-      const reset = response.headers.get('x-rate-limit-reset');
-      let msg = 'Rate limit exceeded.';
+    const headers = Object.fromEntries(resp.headers.entries());
+    const body = await resp.text();
+
+    console.log('DEBUG: Response status:', resp.status);
+    console.log('DEBUG: Response headers:', headers);
+    console.log('DEBUG: Response body:', body);
+
+    if (resp.status === 429) {
+      const reset = resp.headers.get('x-rate-limit-reset');
+      let msg = 'Rate limit exceeded; try again later.';
       if (reset) {
-        const secondsLeft = Math.ceil((+reset * 1000 - Date.now()) / 1000);
-        const minutes = Math.ceil(secondsLeft / 60);
-        msg = `Rate limit exceeded; try again in ${minutes} minute(s).`;
+        const resetTime = new Date(parseInt(reset, 10) * 1000).toLocaleTimeString();
+        msg += ` (resets at ${resetTime})`;
       }
-      return res.status(429).json({ error: msg });
+      return res.status(429).json({ error: msg, debug: headers });
     }
 
-    const data = await response.json();
-    if (data.errors && data.errors.length) {
-      return res.status(response.status).json({ error: data.errors[0].detail });
+    const json = JSON.parse(body);
+    if (json.errors && json.errors.length) {
+      return res.status(resp.status).json({ error: json.errors[0].detail || 'Unknown Twitter API error', debug: headers });
     }
 
-    return res.status(200).json(data);
+    return res.status(200).json(json);
+
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('DEBUG: Unexpected error:', err);
+    return res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
 }
