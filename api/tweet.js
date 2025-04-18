@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  // ensure digits only
+  // Validate ID is digits only
   const m = id.match(/^(\d+)$/);
   if (!m) {
     res.status(400).json({ error: 'Invalid tweet id format' });
@@ -20,22 +20,26 @@ export default async function handler(req, res) {
   }
   const cleanId = m[1];
 
+  // Tell Vercel’s edge CDN to cache for 60s, stale‑while‑revalidate up to 5m
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
+
   try {
-    // build URL
+    // Build Twitter API URL
     const apiUrl = new URL(`https://api.twitter.com/2/tweets/${cleanId}`);
     apiUrl.searchParams.set('tweet.fields', 'public_metrics,text');
 
-    const resp = await fetch(apiUrl, {
+    // Use global fetch in Node 18+ (no node‑fetch import needed)
+    const resp = await fetch(apiUrl.toString(), {
       headers: { Authorization: `Bearer ${BEARER}` }
     });
 
-    // rate limit?
+    // Rate‑limit handling
     if (resp.status === 429) {
       const reset = resp.headers.get('x-rate-limit-reset');
       let msg = 'Rate limit exceeded, please try again later.';
       if (reset) {
-        const resetDate = new Date(reset * 1000);
-        msg += ` (resets at ${resetDate.toLocaleTimeString()})`;
+        const when = new Date(Number(reset) * 1000).toLocaleTimeString();
+        msg += ` (resets at ${when})`;
       }
       res.status(429).json({ error: msg });
       return;
@@ -43,12 +47,15 @@ export default async function handler(req, res) {
 
     const data = await resp.json();
 
+    // Surface any Twitter errors array
     if (data.errors && data.errors.length) {
       res.status(resp.status).json({ error: data.errors[0].detail });
       return;
     }
 
+    // Finally return the tweet JSON
     res.status(200).json(data);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
